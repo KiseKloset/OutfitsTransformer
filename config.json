@@ -45,8 +45,8 @@
     },
     "loss": "mse",
     "metrics": [
-        "accuracy",
-        "top_k_acc"
+        "recall_at5",
+        "recall_at10"
     ],
     "lr_scheduler": {
         "type": "StepLR",

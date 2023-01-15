@@ -1,20 +1,24 @@
 import torch
+import numpy as np
 
 
-def accuracy(output, target):
-    with torch.no_grad():
-        pred = torch.argmax(output, dim=1)
-        assert pred.shape[0] == len(target)
-        correct = 0
-        correct += torch.sum(pred == target).item()
-    return correct / len(target)
+def recall_at5(index_names, sorted_index_names, target_names):
+    return recall_at_k(index_names, sorted_index_names, target_names, 5)
 
 
-def top_k_acc(output, target, k=3):
-    with torch.no_grad():
-        pred = torch.topk(output, k, dim=1)[1]
-        assert pred.shape[0] == len(target)
-        correct = 0
-        for i in range(k):
-            correct += torch.sum(pred[:, i] == target).item()
-    return correct / len(target)
+def recall_at10(index_names, sorted_index_names, target_names):
+    return recall_at_k(index_names, sorted_index_names, target_names, 10)
+
+
+'''
+index_names: DataLoader.index_names
+sorted_index_names: Dataset.query_top_items
+target_names: item_indexes[target_mask]
+'''
+def recall_at_k(index_names, sorted_index_names, target_names, k = 1):
+    labels = torch.tensor(
+        sorted_index_names == np.repeat(np.array(target_names), len(index_names)).reshape(len(target_names), -1))
+    assert torch.equal(torch.sum(labels, dim=-1).int(), torch.ones(len(target_names)).int())
+
+    recall = (torch.sum(labels[:, :k]) / len(labels)).item() * 100
+    return recall
