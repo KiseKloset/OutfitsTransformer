@@ -1,9 +1,14 @@
 {
-    "name": "Mnist_LeNet",
+    "name": "Outfits Transformer",
     "n_gpu": 1,
     "arch": {
-        "type": "MnistModel",
-        "args": {}
+        "type": "OutfitsTransformer",
+        "args": {
+            "n_categories": 11, // size of data_loader.args.categories
+            "d_model": 640,
+            "n_heads": 16,
+            "n_layers": 6
+        }
     },
     "data_loader": {
         "type": "PolyvoreDataLoader",
@@ -23,7 +28,6 @@
                 "shoes",
                 "sunglasses"
             ],
-            "target_dim": 640,
             "masked_ratio": 0.5,
             "batch_size": 16,
             "shuffle": true,

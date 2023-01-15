@@ -15,15 +15,14 @@ class PolyvoreDataLoader(BaseDataLoader):
         data_dir: str, 
         is_disjoint: bool, 
         categories: list[str],
-        target_dim: int,
         masked_ratio: float,
         batch_size: int = 16, 
         shuffle: bool = True, 
         num_workers: int = 1
     ):
         self.categories = categories
-        self.train_dataset = PolyvoreDataset(data_dir, is_disjoint, "train", categories, target_dim, masked_ratio)
-        self.valid_dataset = PolyvoreDataset(data_dir, is_disjoint, "valid", categories, target_dim, masked_ratio)
+        self.train_dataset = PolyvoreDataset(data_dir, is_disjoint, "train", categories, masked_ratio)
+        self.valid_dataset = PolyvoreDataset(data_dir, is_disjoint, "valid", categories, masked_ratio)
 
         self.init_kwargs = {
             'batch_size': batch_size,
@@ -46,10 +45,9 @@ self.index_metadatas: dict[index, metadatas], some names will not have metadata.
 self.outfits: list[dict[outfits. item_indexes]]
 '''
 class PolyvoreDataset(Dataset):
-    def __init__(self, data_dir: str, is_disjoint: bool, split: str, categories: list[str], target_dim: int, masked_ratio: float):
+    def __init__(self, data_dir: str, is_disjoint: bool, split: str, categories: list[str], masked_ratio: float):
         self.data_dir: Path = Path(data_dir).resolve()
         self.categories = categories
-        self.target_dim = target_dim
         self.masked_ratio = masked_ratio
 
         self.__load_index_names()
@@ -111,7 +109,7 @@ class PolyvoreDataset(Dataset):
     def __getitem__(self, index):
         n = len(self.categories)
         item_indexes = [-1] * n
-        embeddings = torch.zeros(n, self.target_dim)
+        embeddings = torch.zeros(n, self.index_embeddings.shape[-1])
         input_mask = [False] * n
         target_mask = [False] * n
 
