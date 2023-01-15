@@ -35,11 +35,12 @@
         }
     },
     "optimizer": {
-        "type": "Adam",
+        "type": "AdamW",
         "args": {
-            "lr": 0.001,
-            "weight_decay": 0,
-            "amsgrad": true
+            "lr": 2e-6,
+            "eps": 1e-7,
+            "weight_decay": 1e-2,
+            "amsgrad": false
         }
     },
     "loss": "mse",
