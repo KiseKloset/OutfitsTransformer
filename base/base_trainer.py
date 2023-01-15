@@ -1,7 +1,6 @@
 import torch
 from abc import abstractmethod
 from numpy import inf
-from logger import TensorboardWriter
 
 
 class BaseTrainer:
@@ -39,11 +38,9 @@ class BaseTrainer:
 
         self.checkpoint_dir = config.save_dir
 
-        # setup visualization writer instance                
-        self.writer = TensorboardWriter(config.log_dir, self.logger, cfg_trainer['tensorboard'])
-
         if config.resume is not None:
             self._resume_checkpoint(config.resume)
+
 
     @abstractmethod
     def _train_epoch(self, epoch):
@@ -53,6 +50,7 @@ class BaseTrainer:
         :param epoch: Current epoch number
         """
         raise NotImplementedError
+
 
     def train(self):
         """
@@ -98,6 +96,7 @@ class BaseTrainer:
             if epoch % self.save_period == 0:
                 self._save_checkpoint(epoch, save_best=best)
 
+
     def _save_checkpoint(self, epoch, save_best=False):
         """
         Saving checkpoints
@@ -122,6 +121,7 @@ class BaseTrainer:
             best_path = str(self.checkpoint_dir / 'model_best.pth')
             torch.save(state, best_path)
             self.logger.info("Saving current best: model_best.pth ...")
+
 
     def _resume_checkpoint(self, resume_path):
         """

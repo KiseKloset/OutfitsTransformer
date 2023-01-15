@@ -59,8 +59,7 @@
         "save_dir": "saved/",
         "save_period": 1,
         "verbosity": 2,
-        "monitor": "min val_loss",
-        "early_stop": 10,
-        "tensorboard": true
+        "monitor": "max val_recall_at5",
+        "early_stop": -1
     }
 }
