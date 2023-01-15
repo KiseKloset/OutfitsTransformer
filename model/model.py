@@ -21,7 +21,8 @@ class ResidualAttentionBlock(nn.Module):
     def __init__(self, d_model: int, n_head: int):
         super().__init__()
 
-        self.attn = nn.MultiheadAttention(d_model, n_head)
+        self.attn = nn.MultiheadAttention(d_model, n_head, batch_first=True)
+        self.attn_mask = None
         self.ln_1 = LayerNorm(d_model)
         self.mlp = nn.Sequential(OrderedDict([
             ("c_fc", nn.Linear(d_model, d_model * 4)),
@@ -31,13 +32,17 @@ class ResidualAttentionBlock(nn.Module):
         self.ln_2 = LayerNorm(d_model)
 
 
+    def set_attn_mask(self, attn_mask: torch.Tensor):
+        self.attn_mask = attn_mask
+
+
     def attention(self, x: torch.Tensor, attn_mask: torch.Tensor):
         attn_mask = attn_mask.to(dtype=x.dtype, device=x.device) if attn_mask is not None else None
         return self.attn(x, x, x, need_weights=False, attn_mask=attn_mask)[0]
 
 
-    def forward(self, x: torch.Tensor, attn_mask: torch.Tensor):
-        x = x + self.attention(self.ln_1(x), attn_mask)
+    def forward(self, x: torch.Tensor):
+        x = x + self.attention(self.ln_1(x), self.attn_mask)
         x = x + self.mlp(self.ln_2(x))
         return x
 
@@ -51,13 +56,13 @@ class OutfitsTransformer(BaseModel):
         nn.init.normal_(self.positional_embedding, std=0.01)
 
         self.encoders = [ResidualAttentionBlock(d_model, n_heads) for _ in range(n_layers)]
+        self.transformer = nn.Sequential(*self.encoders)
 
 
     # embeddings: [batch_size, num_categories, d_model]
     def forward(self, embeddings, input_mask):
-
         # Calculate the attention mask
-        attn_mask = input_mask[:, :, None]
+        attn_mask = input_mask[:, :, None].float()
         attn_mask = torch.bmm(attn_mask, attn_mask.transpose(1, 2)).repeat(self.n_heads, 1, 1)
 
         # Add positional encoding
@@ -65,6 +70,6 @@ class OutfitsTransformer(BaseModel):
 
         # Pass the embeddings through encoders
         for encoder in self.encoders:
-            embeddings = encoder(embeddings, attn_mask)
+            encoder.set_attn_mask(attn_mask)
 
-        return embeddings
+        return self.transformer(embeddings)

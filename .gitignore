@@ -111,5 +111,5 @@ datasets/
 .idea/
 __MACOSX/
 
-# clip pretrained
-clip_pretrained/
+# .zip file
+*.zip

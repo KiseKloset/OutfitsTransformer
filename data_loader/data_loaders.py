@@ -7,11 +7,10 @@ from pathlib import Path
 from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.dataloader import default_collate
 
-from base import BaseDataLoader
-
-class PolyvoreDataLoader(BaseDataLoader):
+class PolyvoreDataLoader(DataLoader):
     def __init__(
         self, 
+        split: str,
         data_dir: str, 
         is_disjoint: bool, 
         categories: list[str],
@@ -21,8 +20,7 @@ class PolyvoreDataLoader(BaseDataLoader):
         num_workers: int = 1
     ):
         self.categories = categories
-        self.train_dataset = PolyvoreDataset(data_dir, is_disjoint, "train", categories, masked_ratio)
-        self.valid_dataset = PolyvoreDataset(data_dir, is_disjoint, "valid", categories, masked_ratio)
+        self.polyvore_dataset = PolyvoreDataset(data_dir, is_disjoint, split, categories, masked_ratio)
 
         self.init_kwargs = {
             'batch_size': batch_size,
@@ -30,19 +28,18 @@ class PolyvoreDataLoader(BaseDataLoader):
             'collate_fn': default_collate,
             'num_workers': num_workers
         }
-        super().__init__(dataset=self.train_dataset, **self.init_kwargs)
+        super().__init__(dataset=self.polyvore_dataset, **self.init_kwargs)
 
 
-    def split_validation(self):
-        return DataLoader(dataset=self.valid_dataset, **self.init_kwargs)
-
+    def query_top_items(self, embeddings: torch.Tensor, device, top_k: int = 5):
+        return self.polyvore_dataset.query_top_items(embeddings, device, top_k)
 
 
 '''
 self.index_names:  list[names]
 self.index_embeddings: list[embeddings]
 self.index_metadatas: dict[index, metadatas], some names will not have metadata.
-self.outfits: list[dict[outfits. item_indexes]]
+self.outfits: list[dict[outfits. item_indices]]
 '''
 class PolyvoreDataset(Dataset):
     def __init__(self, data_dir: str, is_disjoint: bool, split: str, categories: list[str], masked_ratio: float):
@@ -94,7 +91,7 @@ class PolyvoreDataset(Dataset):
             data = json.load(f)
         
         # Create an inversed dictionary for faster lookup
-        temp_dict = dict((v, k) for k, v in self.index_metadatas.items())
+        temp_dict = dict((names, idx) for idx, names in enumerate(self.index_names) if idx in self.index_metadatas)
 
         # Traverse the data in file
         for outfit in data:
@@ -108,10 +105,10 @@ class PolyvoreDataset(Dataset):
 
     def __getitem__(self, index):
         n = len(self.categories)
-        item_indexes = [-1] * n
+        item_indices = torch.full((n,), -1).int()
         embeddings = torch.zeros(n, self.index_embeddings.shape[-1])
-        input_mask = [False] * n
-        target_mask = [False] * n
+        input_mask = torch.full((n,), False) 
+        target_mask = torch.full((n,), False) 
 
         # Read embeddings
         outfit = self.outfits[index]
@@ -121,7 +118,7 @@ class PolyvoreDataset(Dataset):
             category = self.index_metadatas[item_idx]["category"] 
             category_idx = self.categories.index(category)
 
-            item_indexes[category_idx] = item_idx
+            item_indices[category_idx] = item_idx
             embeddings[category_idx] = embedding
             input_mask[category_idx] = True
 
@@ -134,16 +131,21 @@ class PolyvoreDataset(Dataset):
             input_mask[i] = False
             target_mask[i] = True
 
-        return item_indexes, embeddings, input_mask, target_mask
+        return item_indices, embeddings, input_mask, target_mask
 
 
     def __len__(self):
         return len(self.outfits)
 
 
-    def query_top_items(self, embedding: torch.Tensor, device, top_k: int = 5):
+    def query_top_items(self, embeddings: torch.Tensor, device, top_k: int = 5):
+        dim = [i for i in embeddings.shape]
+        _embeddings = embeddings.reshape(-1, dim[-1])
+
         dataset_embeddings = self.index_embeddings.to(device)
-        cos_similarity = dataset_embeddings @ embedding.transpose(0, 1)
+        cos_similarity = _embeddings @ dataset_embeddings.transpose(0, 1)
         sorted_indices = torch.topk(cos_similarity, top_k, dim=1, largest=True).indices.cpu()
-        sorted_index_names = self.index_names[sorted_indices]
-        return sorted_index_names
+
+        # Trick to reshape to original batch_size and num_categories
+        dim[-1] = top_k
+        return np.reshape(sorted_indices, tuple(dim))

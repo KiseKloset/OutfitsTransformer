@@ -4,7 +4,7 @@
     "arch": {
         "type": "OutfitsTransformer",
         "args": {
-            "n_categories": 11, // size of data_loader.args.categories
+            "n_categories": 11,
             "d_model": 640,
             "n_heads": 16,
             "n_layers": 6
@@ -13,6 +13,32 @@
     "data_loader": {
         "type": "PolyvoreDataLoader",
         "args": {
+            "split": "train",
+            "data_dir": "data/",
+            "is_disjoint": false,
+            "categories": [
+                "all-body",
+                "bags",
+                "tops",
+                "outerwear",
+                "hats",
+                "bottoms",
+                "scarves",
+                "jewellery",
+                "accessories",
+                "shoes",
+                "sunglasses"
+            ],
+            "masked_ratio": 0.5,
+            "batch_size": 16,
+            "shuffle": true,
+            "num_workers": 1
+        }
+    },
+    "val_data_loader": {
+        "type": "PolyvoreDataLoader",
+        "args": {
+            "split": "valid",
             "data_dir": "data/",
             "is_disjoint": false,
             "categories": [

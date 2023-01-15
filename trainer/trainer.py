@@ -26,7 +26,7 @@ class Trainer(BaseTrainer):
     def _train_epoch(self, epoch):
         self.model.train()
         self.train_metrics.reset()
-        for batch_idx, (item_indexes, embeddings, input_mask, target_mask) in enumerate(self.data_loader):
+        for batch_idx, (item_indices, embeddings, input_mask, target_mask) in enumerate(self.data_loader):
             embeddings, input_mask, target_mask = embeddings.to(self.device), input_mask.to(self.device), target_mask.to(self.device) 
 
             # Forward and backward
@@ -40,10 +40,9 @@ class Trainer(BaseTrainer):
             self.train_metrics.update('loss', loss.item())
 
             # Track metrics
-            predicted_target_names = self.data_loader.query_top_items(embeddings, self.device, 10)
-            target_names = [item_idx for idx, item_idx in enumerate(item_indexes) if target_mask[idx]]
+            predicted_target_indices = self.data_loader.query_top_items(output, self.device, 10)
             for met in self.metric_ftns:
-                self.train_metrics.update(met.__name__, met(self.data_loader.index_names, predicted_target_names, target_names))
+                self.train_metrics.update(met.__name__, met(predicted_target_indices, item_indices, target_mask))
 
             # Log loss
             if batch_idx % self.log_step == 0:
@@ -70,7 +69,7 @@ class Trainer(BaseTrainer):
         self.model.eval()
         self.valid_metrics.reset()
         with torch.no_grad():
-            for _, (item_indexes, embeddings, input_mask, target_mask) in enumerate(self.valid_data_loader):
+            for _, (item_indices, embeddings, input_mask, target_mask) in enumerate(self.valid_data_loader):
                 embeddings, input_mask, target_mask = embeddings.to(self.device), input_mask.to(self.device), target_mask.to(self.device) 
 
                 # Get output and loss
@@ -81,10 +80,9 @@ class Trainer(BaseTrainer):
                 self.valid_metrics.update('loss', loss.item())
 
                 # Track metrics
-                predicted_target_names = self.valid_data_loader.query_top_items(embeddings, self.device, 10)
-                target_names = [item_idx for idx, item_idx in enumerate(item_indexes) if target_mask[idx]]
+                predicted_target_indices = self.valid_data_loader.query_top_items(output, self.device, 10)
                 for met in self.metric_ftns:
-                    self.valid_metrics.update(met.__name__, met(self.valid_data_loader.index_names, predicted_target_names, target_names))
+                    self.valid_metrics.update(met.__name__, met(predicted_target_indices, item_indices, target_mask))
 
         return self.valid_metrics.result()
 

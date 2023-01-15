@@ -11,14 +11,18 @@ def recall_at10(index_names, sorted_index_names, target_names):
 
 
 '''
-index_names: DataLoader.index_names
-sorted_index_names: Dataset.query_top_items
-target_names: item_indexes[target_mask]
+predicted_target_indices: [batch, num_cat, 10] # indices
+items_indices: [batch, num_cat]
+target_mask: [batch, num_cat]
 '''
-def recall_at_k(index_names, sorted_index_names, target_names, k = 1):
-    labels = torch.tensor(
-        sorted_index_names == np.repeat(np.array(target_names), len(index_names)).reshape(len(target_names), -1))
-    assert torch.equal(torch.sum(labels, dim=-1).int(), torch.ones(len(target_names)).int())
+def recall_at_k(predicted_target_indices, item_indices, target_mask, k = 1):
+    _item_indices = item_indices.unsqueeze(-1)
+    _target_mask = target_mask.unsqueeze(-1)
+    
+    labels = predicted_target_indices == _item_indices
 
-    recall = (torch.sum(labels[:, :k]) / len(labels)).item() * 100
+    all_cases = torch.sum(_target_mask).item()
+    correct_cases = torch.sum((labels & _target_mask)[..., :k]).item()
+
+    recall = correct_cases / all_cases * 100.0
     return recall
