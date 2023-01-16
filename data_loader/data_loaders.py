@@ -13,7 +13,7 @@ class PolyvoreDataLoader(DataLoader):
         split: str,
         data_dir: str, 
         is_disjoint: bool, 
-        categories: list[str],
+        categories: list,
         masked_ratio: float,
         batch_size: int = 16, 
         shuffle: bool = True, 
@@ -42,7 +42,7 @@ self.index_metadatas: dict[index, metadatas], some names will not have metadata.
 self.outfits: list[dict[outfits. item_indices]]
 '''
 class PolyvoreDataset(Dataset):
-    def __init__(self, data_dir: str, is_disjoint: bool, split: str, categories: list[str], masked_ratio: float):
+    def __init__(self, data_dir: str, is_disjoint: bool, split: str, categories: list, masked_ratio: float):
         self.data_dir: Path = Path(data_dir).resolve()
         self.categories = categories
         self.masked_ratio = masked_ratio
@@ -144,8 +144,8 @@ class PolyvoreDataset(Dataset):
 
         dataset_embeddings = self.index_embeddings.to(device)
         cos_similarity = _embeddings @ dataset_embeddings.transpose(0, 1)
-        sorted_indices = torch.topk(cos_similarity, top_k, dim=1, largest=True).indices.cpu()
+        sorted_indices = torch.topk(cos_similarity, top_k, dim=1, largest=True).indices
 
         # Trick to reshape to original batch_size and num_categories
         dim[-1] = top_k
-        return np.reshape(sorted_indices, tuple(dim))
+        return torch.reshape(sorted_indices, tuple(dim))

@@ -27,7 +27,10 @@ class Trainer(BaseTrainer):
         self.model.train()
         self.train_metrics.reset()
         for batch_idx, (item_indices, embeddings, input_mask, target_mask) in enumerate(self.data_loader):
-            embeddings, input_mask, target_mask = embeddings.to(self.device), input_mask.to(self.device), target_mask.to(self.device) 
+            item_indices = item_indices.to(self.device)
+            embeddings = embeddings.to(self.device)
+            input_mask = input_mask.to(self.device)
+            target_mask = target_mask.to(self.device) 
 
             # Forward and backward
             self.optimizer.zero_grad()
@@ -70,7 +73,10 @@ class Trainer(BaseTrainer):
         self.valid_metrics.reset()
         with torch.no_grad():
             for _, (item_indices, embeddings, input_mask, target_mask) in enumerate(self.valid_data_loader):
-                embeddings, input_mask, target_mask = embeddings.to(self.device), input_mask.to(self.device), target_mask.to(self.device) 
+                item_indices = item_indices.to(self.device)
+                embeddings = embeddings.to(self.device)
+                input_mask = input_mask.to(self.device)
+                target_mask = target_mask.to(self.device) 
 
                 # Get output and loss
                 output = self.model(embeddings, input_mask)
