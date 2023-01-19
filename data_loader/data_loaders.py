@@ -126,7 +126,8 @@ class PolyvoreDataset(Dataset):
         available_idx = [idx for idx, i in enumerate(input_mask) if i]
         random.shuffle(available_idx)
 
-        n_item_masked = math.ceil(max(1.0, self.masked_ratio * len(available_idx)))
+        n_item_masked = math.ceil(self.masked_ratio * len(available_idx))
+        n_item_masked = min(len(available_idx) - 1, max(1, n_item_masked))
         for i in available_idx[:n_item_masked]:
             input_mask[i] = False
             target_mask[i] = True
