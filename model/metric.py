@@ -2,12 +2,26 @@ import torch
 import numpy as np
 
 
+def recall_at1(index_names, sorted_index_names, target_names):
+    return recall_at_k(index_names, sorted_index_names, target_names, 1)
+
+def recall_at2(index_names, sorted_index_names, target_names):
+    return recall_at_k(index_names, sorted_index_names, target_names, 2)
+
+def recall_at3(index_names, sorted_index_names, target_names):
+    return recall_at_k(index_names, sorted_index_names, target_names, 3)
+
 def recall_at5(index_names, sorted_index_names, target_names):
     return recall_at_k(index_names, sorted_index_names, target_names, 5)
 
-
 def recall_at10(index_names, sorted_index_names, target_names):
     return recall_at_k(index_names, sorted_index_names, target_names, 10)
+
+def recall_at30(index_names, sorted_index_names, target_names):
+    return recall_at_k(index_names, sorted_index_names, target_names, 30)
+
+def recall_at50(index_names, sorted_index_names, target_names):
+    return recall_at_k(index_names, sorted_index_names, target_names, 50)
 
 
 '''

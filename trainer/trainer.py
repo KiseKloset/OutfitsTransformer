@@ -14,6 +14,7 @@ class Trainer(BaseTrainer):
         self.config = config
         self.device = device
         self.data_loader = data_loader
+        self.dataset = data_loader.polyvore_dataset
         self.len_epoch = len(self.data_loader)
         self.valid_data_loader = valid_data_loader
         self.do_validation = self.valid_data_loader is not None
@@ -26,26 +27,29 @@ class Trainer(BaseTrainer):
     def _train_epoch(self, epoch):
         self.model.train()
         self.train_metrics.reset()
-        for batch_idx, (item_indices, embeddings, input_mask, target_mask) in enumerate(self.data_loader):
+        for batch_idx, (item_indices, embeddings, input_mask, target_mask, fake_embeddings) in enumerate(self.data_loader):
+            n = item_indices.shape[0]
             item_indices = item_indices.to(self.device)
             embeddings = embeddings.to(self.device)
             input_mask = input_mask.to(self.device)
-            target_mask = target_mask.to(self.device) 
+            target_mask = target_mask.to(self.device)
+            target_cls = torch.cat((torch.ones(n), torch.zeros(n)), dim=0).long().to(self.device)
+            fake_embeddings = fake_embeddings.to(self.device)
 
             # Forward and backward
             self.optimizer.zero_grad()
-            output = self.model(embeddings, input_mask)
-            loss = self.criterion(output, embeddings, target_mask)
+            output, output_2 = self.model(embeddings, input_mask, target_mask, fake_embeddings, self.data_loader)
+            loss = self.criterion(output, output_2, item_indices, embeddings, target_mask, target_cls, self.dataset)
             loss.backward()
             self.optimizer.step()
 
             # Track loss
-            self.train_metrics.update('loss', loss.item())
+            self.train_metrics.update('loss', loss.item(), n)
 
             # Track metrics
-            predicted_target_indices = self.data_loader.query_top_items(output, self.device, 10)
+            predicted_target_indices = self.data_loader.query_top_items(output, self.device, 100)
             for met in self.metric_ftns:
-                self.train_metrics.update(met.__name__, met(predicted_target_indices, item_indices, target_mask))
+                self.train_metrics.update(met.__name__, met(predicted_target_indices, item_indices, target_mask), n)
 
             # Log loss
             if batch_idx % self.log_step == 0:
@@ -72,23 +76,27 @@ class Trainer(BaseTrainer):
         self.model.eval()
         self.valid_metrics.reset()
         with torch.no_grad():
-            for _, (item_indices, embeddings, input_mask, target_mask) in enumerate(self.valid_data_loader):
+            for _, (item_indices, embeddings, input_mask, target_mask, fake_embeddings) in enumerate(self.valid_data_loader):
+                n = item_indices.shape[0]
+
                 item_indices = item_indices.to(self.device)
                 embeddings = embeddings.to(self.device)
                 input_mask = input_mask.to(self.device)
                 target_mask = target_mask.to(self.device) 
+                target_cls = torch.cat((torch.ones(n), torch.zeros(n)), dim=0).long().to(self.device)
+                fake_embeddings = fake_embeddings.to(self.device)
 
                 # Get output and loss
-                output = self.model(embeddings, input_mask)
-                loss = self.criterion(output, embeddings, target_mask)
+                output, output_2 = self.model(embeddings, input_mask, target_mask, fake_embeddings, None)
+                loss = self.criterion(output, output_2, item_indices, embeddings, target_mask, target_cls, self.dataset)
 
                 # Track loss
-                self.valid_metrics.update('loss', loss.item())
+                self.valid_metrics.update('loss', loss.item(), n)
 
                 # Track metrics
-                predicted_target_indices = self.valid_data_loader.query_top_items(output, self.device, 10)
+                predicted_target_indices = self.valid_data_loader.query_top_items(output, self.device, 100)
                 for met in self.metric_ftns:
-                    self.valid_metrics.update(met.__name__, met(predicted_target_indices, item_indices, target_mask))
+                    self.valid_metrics.update(met.__name__, met(predicted_target_indices, item_indices, target_mask), n)
 
         return self.valid_metrics.result()
 

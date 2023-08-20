@@ -6,8 +6,9 @@
         "args": {
             "n_categories": 11,
             "d_model": 640,
-            "n_heads": 16,
-            "n_layers": 6
+            "n_heads": 8,
+            "n_layers": 6,
+            "dropout": 0.0
         }
     },
     "data_loader": {
@@ -15,7 +16,7 @@
         "args": {
             "split": "train",
             "data_dir": "data/",
-            "is_disjoint": false,
+            "is_disjoint": true,
             "categories": [
                 "all-body",
                 "bags",
@@ -29,8 +30,8 @@
                 "shoes",
                 "sunglasses"
             ],
-            "masked_ratio": 0.5,
-            "batch_size": 128,
+            "masked_ratio": 0.9,
+            "batch_size": 512,
             "shuffle": true,
             "num_workers": 1
         }
@@ -40,7 +41,7 @@
         "args": {
             "split": "valid",
             "data_dir": "data/",
-            "is_disjoint": false,
+            "is_disjoint": true,
             "categories": [
                 "all-body",
                 "bags",
@@ -54,8 +55,8 @@
                 "shoes",
                 "sunglasses"
             ],
-            "masked_ratio": 0.5,
-            "batch_size": 128,
+            "masked_ratio": 0.0,
+            "batch_size": 512,
             "shuffle": true,
             "num_workers": 1
         }
@@ -65,7 +66,7 @@
         "args": {
             "split": "test",
             "data_dir": "data/",
-            "is_disjoint": false,
+            "is_disjoint": true,
             "categories": [
                 "all-body",
                 "bags",
@@ -79,8 +80,18 @@
                 "shoes",
                 "sunglasses"
             ],
-            "masked_ratio": 0.5,
-            "batch_size": 128,
+            "masked_ratio": 0.0,
+            "batch_size": 512,
+            "shuffle": false,
+            "num_workers": 1
+        }
+    },
+    "test_benchmark_data_loader": {
+        "type": "PolyvoreBenchmarkDataLoader",
+        "args": {
+            "data_dir": "data/",
+            "is_disjoint": true,
+            "batch_size": 512,
             "shuffle": false,
             "num_workers": 1
         }
@@ -88,29 +99,31 @@
     "optimizer": {
         "type": "AdamW",
         "args": {
-            "lr": 2e-06,
-            "eps": 1e-07,
-            "weight_decay": 0.01,
-            "amsgrad": false
+            "lr": 1e-4,
+            "weight_decay": 0.3
         }
     },
-    "loss": "mse",
+    "loss": "contrastive",
     "metrics": [
+        "recall_at1",
         "recall_at5",
-        "recall_at10"
+        "recall_at10",
+        "recall_at30",
+        "recall_at50"
     ],
     "lr_scheduler": {
         "type": "StepLR",
         "args": {
-            "step_size": 50
+            "step_size": 20,
+            "gamma": 0.5
         }
     },
     "trainer": {
-        "epochs": 100,
+        "epochs": 200,
         "save_dir": "saved/",
         "save_period": 1,
         "verbosity": 2,
-        "monitor": "max val_recall_at5",
+        "monitor": "max val_recall_at10",
         "early_stop": -1
     }
 }

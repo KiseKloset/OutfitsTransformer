@@ -13,6 +13,7 @@ def main(config):
 
     # setup data_loader instances
     data_loader = config.init_obj('test_data_loader', module_data)
+    categories = data_loader.categories
 
     # build model architecture
     model = config.init_obj('arch', module_arch)
@@ -49,7 +50,7 @@ def main(config):
             batch_size = embeddings.shape[0]
             total_loss += loss.item() * batch_size
 
-            predicted_target_indices = data_loader.query_top_items(output, device, 10)
+            predicted_target_indices = data_loader.query_top_items(output, device, 100)
             for i, metric in enumerate(metric_fns):
                 total_metrics[i] += metric(predicted_target_indices, item_indices, target_mask) * batch_size
 
